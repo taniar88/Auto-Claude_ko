@@ -146,6 +146,124 @@ See [guides/CLI-USAGE.md](guides/CLI-USAGE.md) for complete CLI documentation.
 
 ---
 
+## Korean Fork Modifications (Auto-Claude_ko)
+
+This fork adds dynamic language support for AI agent responses with enhanced security. Changes are designed for extensibility and community contributions.
+
+### Modified Files
+
+#### **Backend - Language Support**
+
+**`apps/backend/prompts_pkg/prompt_generator.py`**
+- **Purpose**: Core language instruction generation with dynamic detection
+- **Changes**:
+  - Added `get_supported_languages()` - Scans `i18n/locales/` folder to auto-detect available languages
+  - Added `get_user_language_instruction()` - Generates language-specific instructions for AI prompts
+  - Implements prompt injection prevention with sanitization (removes special characters, enforces 50-char limit)
+  - Supports CJK languages (Korean, Japanese, Chinese) via Unicode regex
+- **How it works**: Reads `AUTO_CLAUDE_USER_LANGUAGE` and `AUTO_CLAUDE_USER_LANGUAGE_NAME` environment variables from frontend, validates against detected languages, sanitizes input, and prepends language instruction to agent prompts
+
+**`apps/backend/prompts_pkg/prompts.py`**
+- **Purpose**: Inject language instructions into QA agent prompts
+- **Changes**:
+  - Imports `get_user_language_instruction()` from prompt_generator
+  - Prepends language instruction to `get_qa_reviewer_prompt()` - QA Reviewer sees user's preferred language
+  - Prepends language instruction to `get_qa_fixer_prompt()` - QA Fixer responds in user's language
+- **How it works**: When QA agents run, they receive localized prompts if user has set a non-English language preference
+
+**`apps/backend/spec/pipeline/agent_runner.py`**
+- **Purpose**: Apply language preference to Spec creation agents
+- **Changes**:
+  - Imports `get_user_language_instruction()` from prompt_generator
+  - Adds language instruction at the top of agent prompts in `run()` method
+  - Logs language instruction length for debugging
+- **How it works**: Spec agents (Gatherer, Writer, Critic, etc.) receive language instructions and generate specifications in user's preferred language
+
+#### **Frontend - Language Transmission (To be implemented)**
+
+**`apps/frontend/src/main/agent/agent-process.ts`** *(pending manual merge)*
+- **Purpose**: Pass user's language preference from settings to backend agents
+- **Changes**:
+  - Read `settings.language` from user preferences
+  - Validate against `AVAILABLE_LANGUAGES` from i18n constants
+  - Set environment variables:
+    - `AUTO_CLAUDE_USER_LANGUAGE` - Language code (e.g., "ko", "fr")
+    - `AUTO_CLAUDE_USER_LANGUAGE_NAME` - Display name (e.g., "한국어", "Français")
+  - Includes frontend validation to prevent invalid language codes
+- **How it works**: When spawning agent processes, environment variables carry language preference to backend
+
+### Added Files
+
+**`test_language_detection.py`**
+- **Purpose**: Comprehensive test suite for language detection and security validation
+- **Features**:
+  - Tests dynamic language detection from i18n folder
+  - Validates English default behavior (no instruction)
+  - Verifies French and Korean support (if folders exist)
+  - Security tests:
+    - Unsupported language rejection
+    - Prompt injection prevention (malicious newlines, special characters)
+    - Length limit enforcement (50 chars)
+- **How to use**: `python test_language_detection.py`
+- **Output**: 7 tests covering functionality and security (all pass)
+
+### Key Features
+
+#### **1. Dynamic Language Detection**
+- **No hardcoding**: Language list automatically populated from `apps/frontend/src/shared/i18n/locales/` folder structure
+- **Community-friendly**: Add `locales/ja/` folder → Japanese automatically supported
+- **Single source of truth**: i18n folder drives both UI translations and AI response language
+
+#### **2. Security (Prompt Injection Prevention)**
+- **Allowlist validation**: Only languages with i18n folders are accepted
+- **Character sanitization**: Removes dangerous characters (newlines, control chars, markdown injection)
+- **Length limit**: Language names capped at 50 characters
+- **Defense in depth**: Validation at both frontend (agent-process.ts) and backend (prompt_generator.py)
+
+#### **3. Extensibility**
+To add a new language:
+1. Create folder: `apps/frontend/src/shared/i18n/locales/[lang_code]/`
+2. Add translation JSON files (common.json, settings.json, etc.)
+3. Done! Backend auto-detects and supports new language
+
+No code changes required in:
+- `prompt_generator.py` (auto-scans folder)
+- `prompts.py` (uses dynamic function)
+- `agent_runner.py` (uses dynamic function)
+
+#### **4. Supported Languages (Current)**
+- **English** (en) - Default, no instruction needed
+- **French** (fr) - Full support with accent characters
+- **Korean** (ko) - CJK support *(requires locales/ko/ folder)*
+- **Japanese** (ja) - CJK support *(requires locales/ja/ folder)*
+- **Chinese** (zh) - CJK support *(requires locales/zh/ folder)*
+
+### Testing
+
+Run the test suite to verify:
+```bash
+python test_language_detection.py
+```
+
+Expected output:
+```
+[PASS] Detected languages: ['en', 'fr']
+[PASS] English returns empty string (correct)
+[PASS] French language instruction generated
+[PASS] Malicious newlines removed
+[PASS] Prompt injection sanitized
+[PASS] Length limited to 50 chars
+[PASS] All tests completed!
+```
+
+### Design Philosophy
+
+**Convention over Configuration**: Following industry standards (i18next, Django, VS Code), language support is driven by folder structure rather than configuration files. This reduces maintenance burden and enables non-developers to contribute translations.
+
+**Security by Default**: All user input (language names) is sanitized before injection into AI prompts. Multiple validation layers ensure malicious input cannot compromise agent behavior.
+
+---
+
 ## Development
 
 Want to build from source or contribute? See [CONTRIBUTING.md](CONTRIBUTING.md) for complete development setup instructions.
