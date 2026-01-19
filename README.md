@@ -179,18 +179,20 @@ This fork adds dynamic language support for AI agent responses with enhanced sec
   - Logs language instruction length for debugging
 - **How it works**: Spec agents (Gatherer, Writer, Critic, etc.) receive language instructions and generate specifications in user's preferred language
 
-#### **Frontend - Language Transmission (To be implemented)**
+#### **Frontend - Language Transmission**
 
-**`apps/frontend/src/main/agent/agent-process.ts`** *(pending manual merge)*
+**`apps/frontend/src/main/agent/agent-process.ts`**
 - **Purpose**: Pass user's language preference from settings to backend agents
 - **Changes**:
-  - Read `settings.language` from user preferences
-  - Validate against `AVAILABLE_LANGUAGES` from i18n constants
-  - Set environment variables:
+  - Imports `AVAILABLE_LANGUAGES` from i18n constants for validation
+  - Reads `settings.language` from user preferences in `setupProcessEnvironment()` method
+  - Validates language against `AVAILABLE_LANGUAGES` list (frontend validation layer)
+  - Creates `languageEnv` object with environment variables:
     - `AUTO_CLAUDE_USER_LANGUAGE` - Language code (e.g., "ko", "fr")
-    - `AUTO_CLAUDE_USER_LANGUAGE_NAME` - Display name (e.g., "한국어", "Français")
-  - Includes frontend validation to prevent invalid language codes
-- **How it works**: When spawning agent processes, environment variables carry language preference to backend
+    - `AUTO_CLAUDE_USER_LANGUAGE_NAME` - Display name from i18n config (e.g., "한국어", "Français")
+  - Adds `languageEnv` to process environment with proper priority (after gitBashEnv, before claudeCliEnv)
+  - Includes error handling with try-catch and console logging for debugging
+- **How it works**: When spawning agent processes via `spawnProcess()`, the method calls `setupProcessEnvironment()` which reads user's language setting, validates it, and passes environment variables to Python backend. This bridges the gap between frontend UI settings and backend AI agents.
 
 ### Added Files
 
