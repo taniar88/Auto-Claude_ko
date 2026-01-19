@@ -196,7 +196,7 @@ This fork adds dynamic language support for AI agent responses with enhanced sec
 
 ### Added Files
 
-**`test_language_detection.py`**
+**`tests/test_language_detection.py`**
 - **Purpose**: Comprehensive test suite for language detection and security validation
 - **Features**:
   - Tests dynamic language detection from i18n folder
@@ -206,7 +206,7 @@ This fork adds dynamic language support for AI agent responses with enhanced sec
     - Unsupported language rejection
     - Prompt injection prevention (malicious newlines, special characters)
     - Length limit enforcement (50 chars)
-- **How to use**: `python test_language_detection.py`
+- **How to use**: `python tests/test_language_detection.py`
 - **Output**: 7 tests covering functionality and security (all pass)
 
 ### Key Features
@@ -285,7 +285,7 @@ export const resources = {
 
 Run the test suite to verify:
 ```bash
-python test_language_detection.py
+python tests/test_language_detection.py
 ```
 
 Expected output:
