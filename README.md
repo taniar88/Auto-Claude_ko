@@ -211,27 +211,68 @@ This fork adds dynamic language support for AI agent responses with enhanced sec
 
 ### Key Features
 
-#### **1. Dynamic Language Detection**
-- **No hardcoding**: Language list automatically populated from `apps/frontend/src/shared/i18n/locales/` folder structure
-- **Community-friendly**: Add `locales/ja/` folder → Japanese automatically supported
-- **Single source of truth**: i18n folder drives both UI translations and AI response language
+#### **1. Backend Dynamic Language Detection (Security Layer)**
+- **Purpose**: Validates user language input against allowed languages to prevent prompt injection attacks
+- **How it works**: Backend scans `apps/backend/prompts_pkg/locales/` folder to auto-detect available languages
+- **Security validation**: User-provided language code is checked against this whitelist before generating AI prompts
+- **Defense in depth**: Even if frontend is bypassed (e.g., CLI usage, environment variable manipulation), backend rejects unauthorized languages
 
 #### **2. Security (Prompt Injection Prevention)**
-- **Allowlist validation**: Only languages with i18n folders are accepted
+- **Allowlist validation**: Only languages with locales folders are accepted by backend
 - **Character sanitization**: Removes dangerous characters (newlines, control chars, markdown injection)
 - **Length limit**: Language names capped at 50 characters
-- **Defense in depth**: Validation at both frontend (agent-process.ts) and backend (prompt_generator.py)
+- **Multiple validation layers**:
+  - **Frontend**: Validates against `AVAILABLE_LANGUAGES` in `constants/i18n.ts` when user selects language in UI
+  - **Backend**: Validates against `get_supported_languages()` when generating AI prompts
+- **Why both layers?**: Frontend can be bypassed (CLI, direct API calls), so backend provides final security enforcement
 
 #### **3. Extensibility**
-To add a new language:
-1. Create folder: `apps/frontend/src/shared/i18n/locales/[lang_code]/`
-2. Add translation JSON files (common.json, settings.json, etc.)
-3. Done! Backend auto-detects and supports new language
 
-No code changes required in:
-- `prompt_generator.py` (auto-scans folder)
-- `prompts.py` (uses dynamic function)
-- `agent_runner.py` (uses dynamic function)
+**To add a new language (requires 3 steps):**
+
+**Step 1: Create translation files**
+```bash
+mkdir -p apps/frontend/src/shared/i18n/locales/ja
+# Add translation JSON files: common.json, settings.json, etc.
+```
+
+**Step 2: Register in frontend constants**
+Edit `apps/frontend/src/shared/constants/i18n.ts`:
+```typescript
+export type SupportedLanguage = 'en' | 'fr' | 'ko' | 'ja';  // Add 'ja'
+
+export const AVAILABLE_LANGUAGES = [
+  { value: 'en' as const, label: 'English', nativeLabel: 'English' },
+  { value: 'fr' as const, label: 'French', nativeLabel: 'Français' },
+  { value: 'ko' as const, label: 'Korean', nativeLabel: '한국어' },
+  { value: 'ja' as const, label: 'Japanese', nativeLabel: '日本語' }  // Add this
+] as const;
+```
+
+**Step 3: Register in i18next resources**
+Edit `apps/frontend/src/shared/i18n/index.ts`:
+```typescript
+// Add imports
+import jaCommon from './locales/ja/common.json';
+import jaSettings from './locales/ja/settings.json';
+// ... (import all 11 translation files)
+
+export const resources = {
+  en: { /* ... */ },
+  fr: { /* ... */ },
+  ko: { /* ... */ },
+  ja: {  // Add this
+    common: jaCommon,
+    settings: jaSettings,
+    // ... (add all namespaces)
+  }
+} as const;
+```
+
+**Backend auto-detection (no changes needed):**
+- `prompt_generator.py` - Auto-scans folder (security validation only)
+- `prompts.py` - Uses dynamic function (no hardcoding)
+- `agent_runner.py` - Uses dynamic function (no hardcoding)
 
 #### **4. Supported Languages (Current)**
 - **English** (en) - Default, no instruction needed
