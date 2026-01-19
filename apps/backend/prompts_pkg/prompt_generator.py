@@ -39,7 +39,9 @@ def get_supported_languages() -> set[str]:
     backend_dir = current_dir.parent  # apps/backend/
     apps_dir = backend_dir.parent  # apps/
     project_root = apps_dir.parent  # project root
-    i18n_dir = project_root / "apps" / "frontend" / "src" / "shared" / "i18n" / "locales"
+    i18n_dir = (
+        project_root / "apps" / "frontend" / "src" / "shared" / "i18n" / "locales"
+    )
 
     if not i18n_dir.exists():
         # Fallback to English if i18n folder not found
@@ -49,9 +51,9 @@ def get_supported_languages() -> set[str]:
     # Scan for language directories
     languages = set()
     for item in i18n_dir.iterdir():
-        if item.is_dir() and not item.name.startswith('.'):
+        if item.is_dir() and not item.name.startswith("."):
             # Valid language code: 2-3 lowercase letters (ISO 639-1/639-2)
-            if re.match(r'^[a-z]{2,3}$', item.name):
+            if re.match(r"^[a-z]{2,3}$", item.name):
                 languages.add(item.name)
 
     # Always include English as fallback
