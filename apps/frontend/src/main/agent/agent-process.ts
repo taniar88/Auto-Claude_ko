@@ -25,6 +25,7 @@ import { getOAuthModeClearVars } from './env-utils';
 import { getAugmentedEnv } from '../env-utils';
 import { getToolInfo } from '../cli-tool-manager';
 import { killProcessGracefully } from '../platform';
+import { AVAILABLE_LANGUAGES } from '../../shared/constants/i18n';
 
 /**
  * Type for supported CLI tools
@@ -184,9 +185,34 @@ export class AgentProcessManager {
     const claudeCliEnv = this.detectAndSetCliPath('claude');
     const ghCliEnv = this.detectAndSetCliPath('gh');
 
+    // Read user's language preference from settings and pass to backend
+    // This allows AI agents to respond in the user's preferred language
+    const languageEnv: Record<string, string> = {};
+    try {
+      const settings = readSettingsFile();
+      const language = settings?.language;
+
+      // Only set language env vars if language is a non-empty string
+      if (typeof language === 'string' && language.trim()) {
+        languageEnv['AUTO_CLAUDE_USER_LANGUAGE'] = language;
+
+        // Also pass the language display name so backend doesn't need to maintain a mapping
+        // This makes frontend (i18n.ts) the single source of truth for language names
+        const langConfig = AVAILABLE_LANGUAGES.find(l => l.value === language);
+        if (langConfig) {
+          languageEnv['AUTO_CLAUDE_USER_LANGUAGE_NAME'] = langConfig.label;
+        }
+
+        console.log('[AgentProcess] Setting AUTO_CLAUDE_USER_LANGUAGE:', language, langConfig?.label);
+      }
+    } catch (error) {
+      console.warn('[AgentProcess] Failed to read language setting:', error);
+    }
+
     return {
       ...augmentedEnv,
       ...gitBashEnv,
+      ...languageEnv,
       ...claudeCliEnv,
       ...ghCliEnv,
       ...extraEnv,
