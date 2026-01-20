@@ -803,9 +803,10 @@ export class AgentProcessManager {
    *
    * Priority (later sources override earlier):
    * 1. App-wide memory settings from settings.json (NEW - enables memory from onboarding)
-   * 2. Backend source .env (apps/backend/.env) - CLI defaults
-   * 3. Project's .auto-claude/.env - Frontend-configured settings (memory, integrations)
-   * 4. Project settings (graphitiMcpUrl, useClaudeMd) - Runtime overrides
+   * 2. User language preference from settings.json
+   * 3. Backend source .env (apps/backend/.env) - CLI defaults
+   * 4. Project's .auto-claude/.env - Frontend-configured settings (memory, integrations)
+   * 5. Project settings (graphitiMcpUrl, useClaudeMd) - Runtime overrides
    */
   getCombinedEnv(projectPath: string): Record<string, string> {
     // Load app-wide memory settings from settings.json
@@ -813,13 +814,35 @@ export class AgentProcessManager {
     const appSettings = (readSettingsFile() || {}) as Partial<AppSettings>;
     const memoryEnv = buildMemoryEnvVars(appSettings as AppSettings);
 
+    // Get language preference from settings
+    const languageEnv: Record<string, string> = {};
+    try {
+      const language = appSettings?.language;
+
+      // Only set language env vars if language is a non-empty string
+      if (typeof language === 'string' && language.trim()) {
+        languageEnv['AUTO_CLAUDE_USER_LANGUAGE'] = language;
+
+        // Also pass the language display name so backend doesn't need to maintain a mapping
+        // This makes frontend (i18n.ts) the single source of truth for language names
+        const langConfig = AVAILABLE_LANGUAGES.find(l => l.value === language);
+        if (langConfig) {
+          languageEnv['AUTO_CLAUDE_USER_LANGUAGE_NAME'] = langConfig.label;
+        }
+
+        console.log('[AgentProcess] Setting AUTO_CLAUDE_USER_LANGUAGE:', language, langConfig?.label);
+      }
+    } catch (error) {
+      console.warn('[AgentProcess] Failed to read language setting:', error);
+    }
+
     // Existing env sources
     const autoBuildEnv = this.loadAutoBuildEnv();
     const projectFileEnv = this.loadProjectEnv(projectPath);
     const projectSettingsEnv = this.getProjectEnvVars(projectPath);
 
-    // Priority: app-wide memory -> backend .env -> project .env -> project settings
+    // Priority: app-wide memory -> language -> backend .env -> project .env -> project settings
     // Later sources override earlier ones
-    return { ...memoryEnv, ...autoBuildEnv, ...projectFileEnv, ...projectSettingsEnv };
+    return { ...memoryEnv, ...languageEnv, ...autoBuildEnv, ...projectFileEnv, ...projectSettingsEnv };
   }
 }

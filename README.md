@@ -179,20 +179,45 @@ This fork adds dynamic language support for AI agent responses with enhanced sec
   - Logs language instruction length for debugging
 - **How it works**: Spec agents (Gatherer, Writer, Critic, etc.) receive language instructions and generate specifications in user's preferred language
 
+**`apps/backend/runners/roadmap/executor.py`**
+- **Purpose**: Apply language preference to Roadmap generation agents
+- **Changes**:
+  - Imports `get_user_language_instruction()` from prompt_generator
+  - Adds language instruction at the top of agent prompts in `AgentExecutor.run_agent()` method
+  - Logs language instruction length for debugging
+- **How it works**: Roadmap agents (Discovery, Features) receive language instructions and generate roadmaps in user's preferred language
+
+**`apps/backend/ideation/generator.py`**
+- **Purpose**: Apply language preference to Ideation generation agents
+- **Changes**:
+  - Imports `get_user_language_instruction()` from prompt_generator
+  - Adds language instruction in `IdeationGenerator.run_agent()` method
+  - Adds language instruction in `run_recovery_agent()` method for error recovery
+- **How it works**: Ideation agents (Code Improvements, UI/UX, Security, etc.) receive language instructions and generate ideas in user's preferred language
+
 #### **Frontend - Language Transmission**
 
 **`apps/frontend/src/main/agent/agent-process.ts`**
 - **Purpose**: Pass user's language preference from settings to backend agents
 - **Changes**:
   - Imports `AVAILABLE_LANGUAGES` from i18n constants for validation
-  - Reads `settings.language` from user preferences in `setupProcessEnvironment()` method
-  - Validates language against `AVAILABLE_LANGUAGES` list (frontend validation layer)
-  - Creates `languageEnv` object with environment variables:
-    - `AUTO_CLAUDE_USER_LANGUAGE` - Language code (e.g., "ko", "fr")
-    - `AUTO_CLAUDE_USER_LANGUAGE_NAME` - Display name from i18n config (e.g., "한국어", "Français")
-  - Adds `languageEnv` to process environment with proper priority (after gitBashEnv, before claudeCliEnv)
-  - Includes error handling with try-catch and console logging for debugging
-- **How it works**: When spawning agent processes via `spawnProcess()`, the method calls `setupProcessEnvironment()` which reads user's language setting, validates it, and passes environment variables to Python backend. This bridges the gap between frontend UI settings and backend AI agents.
+  - **In `setupProcessEnvironment()` method** (for task execution):
+    - Reads `settings.language` from user preferences
+    - Validates language against `AVAILABLE_LANGUAGES` list (frontend validation layer)
+    - Creates `languageEnv` object with environment variables:
+      - `AUTO_CLAUDE_USER_LANGUAGE` - Language code (e.g., "ko", "fr")
+      - `AUTO_CLAUDE_USER_LANGUAGE_NAME` - Display name from i18n config (e.g., "한국어", "Français")
+    - Adds `languageEnv` to process environment with proper priority (after gitBashEnv, before claudeCliEnv)
+    - Includes error handling with try-catch and console logging for debugging
+  - **In `getCombinedEnv()` method** (for roadmap/ideation generation):
+    - Reads `settings.language` from user preferences
+    - Creates `languageEnv` object with same environment variables as above
+    - Returns combined environment with language settings included
+    - Ensures roadmap and ideation agents receive language preferences
+- **How it works**:
+  - Task execution uses `spawnProcess()` → `setupProcessEnvironment()` → language settings passed
+  - Roadmap/ideation uses `spawnRoadmapProcess()`/`spawnIdeationProcess()` → `getCombinedEnv()` → language settings passed
+  - Both paths now support user's language preference, bridging the gap between frontend UI settings and backend AI agents
 
 ### Added Files
 
