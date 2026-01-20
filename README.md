@@ -324,6 +324,32 @@ Expected output:
 [PASS] All tests completed!
 ```
 
+### Troubleshooting
+
+#### **Language patch not working (still getting English responses)**
+
+**Symptom**: You've installed Auto-Claude_ko but AI responses are still in English even though Korean is selected in settings.
+
+**Cause**: If you previously had Auto-Claude installed in a different location, your `autoBuildPath` setting may point to the old (unpatched) installation.
+
+**How Auto-Claude works**:
+- Settings are stored in `~/AppData/Roaming/auto-claude/settings.json` (Windows) or `~/.config/auto-claude/settings.json` (macOS/Linux)
+- `autoBuildPath` tells the app where to find the backend Python code
+- When set to an old installation, the app uses that folder's code instead of the current Git repo
+
+**Solution**:
+1. Open Settings → General
+2. Check the "Auto-Build Source Path" setting
+3. If it points to an old Auto-Claude folder:
+   - Click "Browse" and select the current `Auto-Claude_ko/apps/backend` folder
+   - Or delete the old folder entirely and reinstall
+4. Restart the app for changes to take effect
+
+**Verification**:
+- After changing paths, run a roadmap or ideation task
+- AI responses should now appear in Korean
+- If still in English, check the Settings path again and ensure you're using the Auto-Claude_ko repository
+
 ### Design Philosophy
 
 **Convention over Configuration**: Following industry standards (i18next, Django, VS Code), language support is driven by folder structure rather than configuration files. This reduces maintenance burden and enables non-developers to contribute translations.
