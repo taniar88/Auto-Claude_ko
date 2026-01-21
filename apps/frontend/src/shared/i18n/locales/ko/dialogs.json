@@ -163,5 +163,16 @@
     "downloadError": "업데이트 다운로드 실패",
     "claudeCodeChangelog": "Claude Code 변경 내역 보기",
     "claudeCodeChangelogAriaLabel": "Claude Code 변경 내역 보기 (새 창에서 열림)"
+  },
+  "versionWarning": {
+    "title": "조치 필요",
+    "subtitle": "버전 2.7.5 업데이트",
+    "description": "이 버전의 인증 변경으로 인해 Claude 프로필을 다시 인증해야 합니다.",
+    "instructions": "다시 인증하려면:",
+    "step1": "설정으로 이동",
+    "step2": "앱 설정 > 통합으로 이동",
+    "step3": "프로필에서 \"재인증\"을 클릭",
+    "gotIt": "확인",
+    "goToSettings": "설정으로 이동"
   }
 }
